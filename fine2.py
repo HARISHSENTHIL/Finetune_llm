@@ -66,7 +66,7 @@ trainer = SFTTrainer(
     dataset_num_proc = 2,
     packing = False, 
     args = TrainingArguments(
-        per_device_train_batch_size = 2,
+        per_device_train_batch_size = 1,
         gradient_accumulation_steps = 4,
         warmup_steps = 5,
         num_train_epochs = 1,
@@ -86,5 +86,4 @@ trainer = SFTTrainer(
 
 trainer_stats = trainer.train()
 
-
-{'train_runtime': 189.2367, 'train_samples_per_second': 0.634, 'train_steps_per_second': 0.317, 'train_loss': 0.6614961052934328, 'epoch': 0.0}                                                                       
+model.save_pretrained_gguf("model", tokenizer, quantization_method = "q4_k_m")
