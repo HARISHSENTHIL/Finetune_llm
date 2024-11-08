@@ -1,0 +1,77 @@
+import ollama
+import json
+
+client = ollama.Client(host='http://localhost:11434')
+
+def extract_personas(text_input):
+    persona_prompt_template = f"""
+    You are an expert in analyzing text content to identify and define as many personas as possible associated with specific ways of expressing. Provide concise and assertive definitions in one or two sentences for each persona, ensuring they are fine-grained if the text includes detailed elements. Use the following formats to begin each persona definition: "A machine learning researcher...", "A pediatric nurse whose...", "An urban planner focused on...". Additionally, specify who is likely to read, write, like, or dislike the text for each persona.
+    Input Text: "{text_input}"
+    Provide only the persona descriptions, without any additional formatting or explanation. Before each persona, add the tag 'input persona:'.
+    """
+    try:
+        response = client.chat(model='llama3:latest', messages=[{"role": "user", "content": persona_prompt_template}])
+        return(response)
+
+    except Exception as e:
+        print("An error occurred:", str(e))
+        return None
+
+
+def synthetic_data_from_personas(persona):
+    synthetic_data_prompt_template = f'''
+    You are an AI model that generates synthetic data based on provided personas. Your task is to create synthetic data that reflects the characteristics and attributes of these personas with the persona's prompt to generate the synthetic data.
+
+    {persona}
+
+    Synthetic Data format: CSV
+
+    Note:
+    1. Your output should start with "User prompt:
+    2. You are a Synthetic Data Engineer and need to provide a synthetic dataset.
+    3. The prompt should specify the number of records.
+    4. Your output should start with "Synthetic Data:".
+    5. Automatically identify and extract relevant features from the persona description and persona's prompt to create the dataset.
+    6. Ensure the data reflects the diversity and attributes of the given persona and persona's prompt.
+    7. The output format should be CSV, suitable for use in machine learning tasks.
+    8. Randomly select or derive values for any additional fields from the persona data to enhance the dataset.
+    '''
+    try:
+        response = client.chat(model='llama3:latest', messages=[{"role": "user", "content": synthetic_data_prompt_template}])
+        return response
+    except Exception as e:
+        print(f"An error occurred during synthetic data generation: {str(e)}")
+        return None
+
+def save_to_json(data, filename='synthetic_data.json'):
+    with open(filename, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+    print(f"Synthetic data saved to {filename}")
+
+def main_workflow(user_input):
+    personas_response = extract_personas(user_input)
+    if personas_response:
+        personas_content = personas_response['message']['content']
+        personas = personas_content.split('\n\n')
+        print("Generated Personas:\n", personas_content)
+    else:
+        print("Failed to generate personas.")
+        return
+
+    synthetic_data_responses = []
+    for persona in personas:
+        if persona.startswith('input persona:'):
+            synthetic_data = synthetic_data_from_personas(persona)
+            if synthetic_data:
+                synthetic_data_responses.append({
+                    "persona": persona,
+                    "synthetic_data": synthetic_data
+                })
+
+    for i, data in enumerate(synthetic_data_responses):
+        print(f"\nSynthetic Data for Persona {i + 1}:\n", data['synthetic_data'])
+
+    save_to_json(synthetic_data_responses)
+
+user_input_text = input("Please enter your input text to generate personas: ")
+main_workflow(user_input_text)
